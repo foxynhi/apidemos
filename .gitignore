@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+TestResults/
+Reports/
+*.trx
+*.coverage*
+*.TestResults.json
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+.idea/
+
+# Logs & temp
+*.log
+appium.log
+
+# OS
+Thumbs.db
+.DS_Store
