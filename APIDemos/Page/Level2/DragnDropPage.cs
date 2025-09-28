@@ -18,7 +18,7 @@ namespace APIDemos.Page.Level2
     public bool VerifyDnDAction()
     {
       string text = driver.FindVisible(By.XPath("//android.widget.TextView[@resource-id=\"io.appium.android.apis:id/drag_result_text\"]")).Text;
-      return (text.Contains("Dropped") | text.Contains("Dropping"));
+      return (text.Contains("Dropped", StringComparison.OrdinalIgnoreCase) | text.Contains("Dropping", StringComparison.OrdinalIgnoreCase));
     }
   }
 }

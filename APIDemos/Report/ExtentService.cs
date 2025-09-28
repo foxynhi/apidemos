@@ -9,7 +9,7 @@ namespace APIDemos.Report
 
     static ExtentService()
     {
-      ReportPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Reports", $"API_Demos_{DateTime.Now:yyyyMMdd_HHmmss}"));
+      ReportPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestResults", $"API_Demos_{DateTime.Now:yyyyMMdd_HHmmss}"));
       Directory.CreateDirectory(ReportPath);
 
       Console.WriteLine($"Report Path: {ReportPath}");

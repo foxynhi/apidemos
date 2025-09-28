@@ -7,8 +7,8 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
 
-[assembly: Parallelizable(ParallelScope.Fixtures)]
-[assembly: LevelOfParallelism(3)]
+//[assembly: Parallelizable(ParallelScope.Fixtures)]
+//[assembly: LevelOfParallelism(3)]
 
 namespace APIDemos.Test;
 

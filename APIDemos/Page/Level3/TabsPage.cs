@@ -23,7 +23,7 @@ namespace APIDemos.Page.Level3
       By Tab3Content = By.XPath("//android.widget.TextView[@content-desc=\"tab3\"]");
 
       driver.Tap(Tab3);
-      return driver.GetText(Tab3Content).Contains("tab3");
+      return driver.GetText(Tab3Content).Contains("tab3", StringComparison.OrdinalIgnoreCase);
     }
   }
 }

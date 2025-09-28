@@ -12,7 +12,7 @@ namespace APIDemos.Page.Level2
     public ViewsPage(IWebDriver driver) : base(driver) { }
 
     private By ExpandableLists = By.XPath("//android.widget.TextView[@content-desc=\"Expandable Lists\"]");
-    private By Tabs = By.XPath("//android.widget.TextView[@content-desc=\"Layouts\"]");
+    private By Tabs = By.XPath("//android.widget.TextView[@content-desc=\"Tabs\"]");
     public DragnDropPage GoToDragnDropPage()
     {
       driver.Tap(By.XPath("//android.widget.TextView[@content-desc=\"Drag and Drop\"]"));

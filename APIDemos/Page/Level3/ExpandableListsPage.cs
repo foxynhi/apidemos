@@ -17,7 +17,7 @@ namespace APIDemos.Page.Level3
       driver.LongPress(peopleNames);
 
       var validateText = driver.GetText(By.XPath("//android.widget.TextView[@resource-id=\"android:id/title\" and @text=\"Sample menu\"]"));
-      return validateText.Contains("Sample menu".ToLower());
+      return validateText.Contains("Sample menu", StringComparison.OrdinalIgnoreCase);
     }
   }
 }

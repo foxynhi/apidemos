@@ -13,7 +13,7 @@ namespace APIDemos.Page.Level3
       driver.Tap(By.XPath("//android.widget.TextView[@content-desc=\"IncomingMessage\"]"));
       Thread.Sleep(1000);
       var alert = driver.SwitchTo().Alert();
-      bool isSuccess =  driver.GetText(By.XPath("//android.widget.TextView[@resource-id=\"com.android.permissioncontroller:id/permission_message\"]")).Contains("notifications".ToLower());
+      bool isSuccess =  driver.GetText(By.XPath("//android.widget.TextView[@resource-id=\"com.android.permissioncontroller:id/permission_message\"]")).Contains("notifications", StringComparison.OrdinalIgnoreCase);
       if (isSuccess) {
         alert.Accept();
         return isSuccess;
