@@ -17,9 +17,10 @@ if (!(Test-Path $emulatorExe)) { throw "emulator.exe not found at $emulatorExe" 
 if (!(Test-Path $adbExe)) { throw "adb.exe not found at $adbExe" }
 
 # Kill any leftovers
-& $adbExe kill-server | Out-Null
+Get-Process -Name "qemu-system-x86_64" -ErrorAction SilentlyContinue |
+  Stop-Process -Force -ErrorAction SilentlyContinue
+& $adbExe kill-server 2>$null | Out-Null
 Start-Sleep -Seconds 1
-taskkill /IM "qemu-system-x86_64.exe" /F 2>$null | Out-Null
 
 # Start emulator headless & faster boot flags
 $emuArgs = @("-avd", $AvdName, "-no-snapshot", "-no-boot-anim", "-no-audio", "-gpu", "off", "-no-window")
