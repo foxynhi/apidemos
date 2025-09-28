@@ -1,5 +1,6 @@
 ﻿using APIDemos.Base;
 using APIDemos.Common;
+using APIDemos.Page.Level3;
 using OpenQA.Selenium;
 
 namespace APIDemos.Page.Level2
@@ -7,10 +8,12 @@ namespace APIDemos.Page.Level2
   public class AppPage : BasePage
   {
     public AppPage(IWebDriver driver) : base(driver) { }
+    private By notificationPage = By.XPath("//android.widget.TextView[@content-desc=\"Notification\"]");
 
-    public string VerifyPage()
+    public NotificationPage GoToNotificationPage()
     {
-      return driver.GetText(By.XPath("//android.widget.TextView[@content-desc=\"Action Bar\"]"));
+      driver.Tap(notificationPage);
+      return new NotificationPage(driver);
     }
   }
 }

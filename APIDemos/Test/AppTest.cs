@@ -8,11 +8,10 @@ namespace APIDemos.Test
     public AppTest(DeviceConfig cfg) : base(cfg) {}
 
     [Test]
-    public void VerifyTest()
+    public void SystemNotificationTest()
     {
-      var homePage = new HomePage(driver);
-      var appPage = homePage.GoToAppPage();
-      Assert.That(appPage.VerifyPage().Equals("Action Bar"));
+      var notificationPage = new HomePage(driver).GoToAppPage().GoToNotificationPage();
+      notificationPage.GetSystemNotification();
     }
   }
 }

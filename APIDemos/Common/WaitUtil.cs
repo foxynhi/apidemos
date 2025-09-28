@@ -8,7 +8,10 @@ namespace APIDemos.Common
 {
   public static class WaitUtil
   {
-    private static WebDriverWait Wait(this IWebDriver driver, int seconds = 10) => new WebDriverWait(driver, TimeSpan.FromSeconds(seconds));
+    private static WebDriverWait Wait(this IWebDriver driver, int seconds = 10) => new WebDriverWait(driver, TimeSpan.FromSeconds(seconds))
+    {
+      PollingInterval = TimeSpan.FromMilliseconds(300)
+    };
 
     public static IWebElement WaitUntilClickable (this IWebDriver driver, By by, int seconds = 10)
     {
@@ -26,5 +29,12 @@ namespace APIDemos.Common
           return els.Count > 0 ? els[0] : null;
         })!;
     }
+    //public static WebDriverWait FluentWait(this IWebDriver driver, int seconds = 10)
+    //{
+    //  return new WebDriverWait(driver, TimeSpan.FromSeconds(seconds))
+    //  {
+    //    PollingInterval = TimeSpan.FromMilliseconds(300)
+    //  };
+    //}
   }
 }

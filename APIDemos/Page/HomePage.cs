@@ -25,7 +25,6 @@ namespace APIDemos.Page
     }
     public ViewsPage GoToViewsPage()
     {
-      Console.WriteLine("Element exists: ", driver.WaitUntilExists(Views).Text);
       driver.Tap(Views);
       return new ViewsPage(driver);
     }

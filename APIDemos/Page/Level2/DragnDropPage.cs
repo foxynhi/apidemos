@@ -12,8 +12,7 @@ namespace APIDemos.Page.Level2
     {
       By dot1 = By.XPath("//android.view.View[@resource-id=\"io.appium.android.apis:id/drag_dot_1\"]");
       By dot2 = By.XPath("//android.view.View[@resource-id=\"io.appium.android.apis:id/drag_dot_2\"]");
-      driver.Act().DragAndDrop(driver.FindVisible(dot1), driver.FindVisible(dot1)).Perform();
-      //DriverExtensions.DragnDrop(driver, dot1, dot2);
+      driver.DragnDrop(dot1, dot2);
     }
 
     public bool VerifyDnDAction()

@@ -34,15 +34,15 @@ public static class DeviceMatrix
       AppPackage: "io.appium.android.apis",
       AppActivity: ".ApiDemos"
     ),
-    new DeviceConfig(
-      Name: "Medium Phone",
-      DeviceName: "emulator-5556",
-      PlatformName: "Android",
-      SystemPort: 8889,
-      App: null,
-      AppPackage: "io.appium.android.apis",
-      AppActivity: ".ApiDemos"
-    ),
+    //new DeviceConfig(
+    //  Name: "Medium Phone",
+    //  DeviceName: "emulator-5556",
+    //  PlatformName: "Android",
+    //  SystemPort: 8889,
+    //  App: null,
+    //  AppPackage: "io.appium.android.apis",
+    //  AppActivity: ".ApiDemos"
+    //),
     //new DeviceConfig(
     //  Name: "Pixel 7",
     //  DeviceName: "emulator-5558",
@@ -118,9 +118,6 @@ public class BaseTest
         
         ((ITakesScreenshot)driver).GetScreenshot().SaveAsFile(screenshotPath);
 
-        //screenshotPath = Path.Combine(screenshotPath, $"{context.Test.Name}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-        //screenshot.SaveAsFile(screenshotPath);
-        //_test.Value?.AddScreenCaptureFromPath(screenshotPath);
         _test.Value?.AddScreenCaptureFromPath(Path.GetFileName(screenshotPath));
       }
       else if (context.Result.Outcome.Status == TestStatus.Passed)
@@ -144,7 +141,7 @@ public class BaseTest
   [OneTimeTearDown]
   public void OneTimeTearDown()
   {
-    ExtentService.Extent.Flush();
+    _extent.Flush();
     TestContext.WriteLine($"Report: {ExtentService.ReportPath}");
   }
 }

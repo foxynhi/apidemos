@@ -21,17 +21,29 @@ namespace APIDemos.Test
     public void LongPressMenuTest()
     {
       var expandableListsPage = new HomePage(driver).GoToViewsPage().GoToExpListsPage();
-      expandableListsPage.LongPressMenu();
-      //Assert.That(expandableListsPage.VerifyDnDAction(), Is.True, "Drag and drop failed");
+      Assert.That(expandableListsPage.LongPressMenu(), Is.True);
     }
 
-    //[Testd
+    [Test]
+    public void TabsTest()
+    {
+      var tabsPage = new HomePage(driver).GoToViewsPage().GoToTabsPage();
+      Assert.That(tabsPage.SwitchTabs(), Is.True);
+    }
+
+    [Test]
     public void abc()
     {
-      var TestPage = new HomePage(driver).GoToViewsPage();
-      var ele = driver.FindElement(By.XPath("//android.widget.TextView[@content-desc=\"Grid\"]"));
-      Thread.Sleep(2000);
-      new Actions(driver).ScrollToElement(ele);
+      var W = driver.Manage().Window.Size.Width;
+      var H = driver.Manage().Window.Size.Height;
+      var viewsPage = new HomePage(driver).GoToViewsPage();
+      new Actions(driver).MoveToLocation((int)(W * 0.5), (int)(H * 0.6))
+             .ClickAndHold()
+             .Pause(TimeSpan.FromMilliseconds(200))
+             .MoveByOffset(0, -(int)(H * 0.6))
+             .Pause(TimeSpan.FromMilliseconds(500))
+             .Release()
+             .Perform();
     }
   }
 }

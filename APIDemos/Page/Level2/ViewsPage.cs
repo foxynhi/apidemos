@@ -3,6 +3,7 @@ using APIDemos.Common;
 using APIDemos.Page.Level3;
 using OpenQA.Selenium;
 using OpenQA.Selenium.DevTools.V137.Input;
+using OpenQA.Selenium.Interactions;
 
 namespace APIDemos.Page.Level2
 {
@@ -11,6 +12,7 @@ namespace APIDemos.Page.Level2
     public ViewsPage(IWebDriver driver) : base(driver) { }
 
     private By ExpandableLists = By.XPath("//android.widget.TextView[@content-desc=\"Expandable Lists\"]");
+    private By Tabs = By.XPath("//android.widget.TextView[@content-desc=\"Layouts\"]");
     public DragnDropPage GoToDragnDropPage()
     {
       driver.Tap(By.XPath("//android.widget.TextView[@content-desc=\"Drag and Drop\"]"));
@@ -21,6 +23,13 @@ namespace APIDemos.Page.Level2
     {
       driver.Tap(ExpandableLists);
       return new ExpandableListsPage(driver);
+    }
+
+    public TabsPage GoToTabsPage()
+    {
+      driver.SwipeToElement(Tabs, 5);
+      driver.Tap(Tabs);
+      return new TabsPage(driver);
     }
   }
 }
