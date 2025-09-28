@@ -4,6 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+try { $Port = [int]$Port } catch { throw "APPIUM Port must be numeric. Got: '$Port'" }
+
 # Start Appium in background
 $cmd = "npx"
 $args = @("appium", "--base-path", "--port", $Port.ToString())
