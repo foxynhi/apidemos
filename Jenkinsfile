@@ -36,7 +36,7 @@ pipeline {
       steps {
         powershell '''
           ./ci/start-emulator.ps1 -AvdName "${env:AVD_NAME}" -BootTimeoutSec 240
-          ./ci/start-appium.ps1 -Port [int]$env:APPIUM_PORT
+          ./ci/start-appium.ps1 -Port $env:APPIUM_PORT
         '''
       }
     }
