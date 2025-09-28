@@ -49,7 +49,7 @@
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
-            --logger "nunit;LogFilePath=TestResults\TestResult.xml" `
+            --logger "nunit;LogFilePath=TestResults/TestResult.xml" `
             -- NUnit.NumberOfTestWorkers=1
         '''
       }
