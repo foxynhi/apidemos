@@ -45,6 +45,7 @@ pipeline {
     stage('Run Tests') {
       steps {
         powershell '''
+          echo "Running tests..."
           $env:APPIUM_SERVER_URL = "http://127.0.0.1:${env:APPIUM_PORT}"
 
           Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
