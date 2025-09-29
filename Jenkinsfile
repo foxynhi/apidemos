@@ -157,7 +157,7 @@ pipeline {
 
             Write-Host "Running tests against $serial via $env:APPIUM_SERVER_URL ..."
             # Adjust the path if your solution/test project lives elsewhere
-            dotnet test -c Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "LongPressMenuTest" -- NUnit.NumberOfTestWorkers=1
+            dotnet test -c Release --no-build --logger "trx;LogFileName=TestResults.trx" -- NUnit.NumberOfTestWorkers=1
           '''
         }
       }
