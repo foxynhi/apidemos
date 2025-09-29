@@ -8,8 +8,12 @@ try { $Port = [int]$Port } catch { throw "APPIUM Port must be numeric. Got: '$Po
 
 
 # Start Appium in background
-$cmd = "cmd.exe"
-$args = @("/c", "npx", "appium", "--base-path", "/", "--port", $Port.ToString())
+$AppiumCmd = (Get-Command appium.cmd -ErrorAction SilentlyContinue)?.Path
+$NpxCmd    = (Get-Command npx.cmd    -ErrorAction SilentlyContinue)?.Path
+if (-not $AppiumCmd -and -not $NpxCmd) {
+  throw "Could not find appium.cmd or npx.cmd on PATH."
+}
+
 
 # Kill if already listening
 $inUse = (Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue)
@@ -19,16 +23,31 @@ if ($inUse) {
   Start-Sleep -Seconds 2
 }
 
+$log = 'C:\jenkins-agent\Appium.log'
+if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
+
+if ($AppiumCmd) {
+  $cmd = $AppiumCmd
+  $args = @("/c","start","""AppiumServer""","""$AppiumCmd"" --base-path / --port $Port --log `"$log`"") `
+} else {
+  
+  $cmd = $NpxCmd
+  $args = @("/c","start","""AppiumServer""","""$NpxCmd"" appium --base-path / --port $Port --log `"$log`"") `
+}
+
 Write-Host "Starting Appium on port $Port with command: $cmd $($args -join ' ')"
-Start-Process -FilePath $cmd -ArgumentList $args -NoNewWindow
-Write-Host "Appium start command issued..."
+#Start-Process -FilePath $cmd -ArgumentList $args -NoNewWindow
+#Write-Host "Appium start command issued..."
 
 # Wait for port
 $deadline = (Get-Date).AddSeconds(20)
+$ready = $false
 do {
   Start-Sleep -Seconds 1
-  $up = (Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue)
-} while (-not $up -and (Get-Date) -lt $deadline)
-
-if (-not $up) { throw "Appium did not start on port $Port." }
-Write-Host "Appium is up."
+  try {
+    $r = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:$Port/status" -TimeoutSec 2
+    if ($r.StatusCode -in 200,304) { $ready = $true }
+  } catch { }
+} while (-not $ready -and (Get-Date) -lt $deadline)
+if (-not $ready) { throw "Appium did not report ready on http://127.0.0.1:$Port/status. See $log" }
+Write-Host "Appium is up. Logs: $log"
