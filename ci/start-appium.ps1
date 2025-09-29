@@ -31,4 +31,4 @@ if (-not $up) {
   Remove-Job -Job $job -ErrorAction SilentlyContinue
   throw "Appium did not start on port $Port." 
 }
-Write-Host "Appium is up."
+Write-Host "Appium is up (Job ID: $($job.Id))."
