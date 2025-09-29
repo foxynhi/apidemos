@@ -75,9 +75,32 @@ jobs:
         emulator-options: -no-snapshot -no-boot-anim -no-window
         disable-animations: true
         script: |
-          adb devices
-          # Optional: verify device is idle before running tests
-          adb shell cmd deviceidle force-idle || true
+          adb start-server
+          adb devices -l
+    
+          # Block until the device is connected
+          adb wait-for-device
+    
+          # Optional: unlock screen
+          adb shell input keyevent 82 || true
+    
+          # Wait until Android reports boot completed
+          BOOTED=""
+          for i in $(seq 1 60); do
+            BOOTED=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$BOOTED" = "1" ]; then
+              echo "Boot completed."
+              break
+            fi
+            echo "Waiting for sys.boot_completed... ($i/60)"
+            sleep 2
+          done
+          test "$BOOTED" = "1"
+    
+          # Sanity checks (will fail if device isn’t ready)
+          adb shell getprop ro.product.model
+          adb shell wm size
+          adb shell pm list packages | head -n 10
 
     - name: Build tests
       run: dotnet build --configuration Release
