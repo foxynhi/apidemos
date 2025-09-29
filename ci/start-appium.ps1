@@ -8,8 +8,8 @@ try { $Port = [int]$Port } catch { throw "APPIUM Port must be numeric. Got: '$Po
 
 
 # Start Appium in background
-$AppiumCmd = (Get-Command appium.cmd -ErrorAction SilentlyContinue)?.Path
-$NpxCmd    = (Get-Command npx.cmd    -ErrorAction SilentlyContinue)?.Path
+$AppiumCmd = "C:/Users/khanh/AppData/Roaming/npm/appium.cmd"
+$NpxCmd    = "C:/Program Files/nodejs/npx.cmd"
 if (-not $AppiumCmd -and -not $NpxCmd) {
   throw "Could not find appium.cmd or npx.cmd on PATH."
 }
@@ -23,7 +23,7 @@ if ($inUse) {
   Start-Sleep -Seconds 2
 }
 
-$log = 'C:\jenkins-agent\Appium.log'
+$log = 'C:/jenkins-agent/Appium.log'
 if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
 
 if ($AppiumCmd) {
