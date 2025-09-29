@@ -1,10 +1,12 @@
 pipeline {
   agent { label 'windows-android' }
-  
+
   options {
     timestamps()
+    ansiColor('xterm')
+    durabilityHint('PERFORMANCE_OPTIMIZED')
   }
-  
+
   environment {
     ANDROID_HOME     = "${env.ANDROID_HOME}"
     JAVA_HOME        = "${env.JAVA_HOME}"
@@ -12,7 +14,7 @@ pipeline {
     AVD_NAME         = "Pixel_9"
     APPIUM_PORT      = "4723"
   }
-  
+
   stages {
     stage('Checkout') {
       steps {
@@ -20,7 +22,7 @@ pipeline {
         echo "Checkout successfully."
       }
     }
-    
+
     stage('Restore & Build') {
       steps {
         powershell '''
@@ -31,73 +33,65 @@ pipeline {
       }
     }
 
-    stage('Start Appium Server') {
+    stage('Start Emulator & Appium') {
       steps {
-        script {
-          sh 'appium --log-level error > appium.log 2>&1 &'
-          sh 'sleep 5' // Wait for Appium to start
-        }
+        powershell '''
+          ./ci/start-emulator.ps1 -AvdName "${env:AVD_NAME}" -BootTimeoutSec 240
+          ./ci/start-appium.ps1 -Port $env:APPIUM_PORT
+          echo "Running tests..."
+        '''
       }
     }
 
-    stage('Start Emulator') {
-      steps {
-        script {
-          sh 'emulator -avd $AVD_NAME -no-snapshot -no-audio -no-window &'
-          sh 'adb wait-for-device shell "while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done"'
-        }
-      }
-    }
-
-    
     stage('Run Tests') {
       steps {
         powershell '''
+          echo "Running tests..."
+          $env:APPIUM_SERVER_URL = "http://127.0.0.1:${env:APPIUM_PORT}"
+          Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
+      
+          # Use Set-Location with proper path
+          Set-Location -Path "Auto Test/APIDemos"
+          Get-Location  # Verify we're in the right place
+          Get-ChildItem # List files to confirm
+      
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
-            --logger "nunit;LogFilePath=./TestResults/TestResult.xml" `
+            --logger "nunit;LogFilePath=TestResults/TestResult.xml" `
             -- NUnit.NumberOfTestWorkers=1
-          
-          Write-Host "`nTests completed!"
         '''
       }
       post {
         always {
-          junit allowEmptyResults: true, testResults: '**/TestResults/TestResult.xml'
-          
-          archiveArtifacts artifacts: 'TestResults/**', allowEmptyArchive: true
+          junit allowEmptyResults: true, testResults: 'TestResults/TestResult.xml'
+          publishHTML(target: [
+            reportDir: 'TestResults',
+            reportFiles: '**/index.html',
+            reportName: 'Extent Report',
+            keepAll: true,
+            alwaysLinkToLastBuild: true,
+            allowMissing: true
+          ])
+          archiveArtifacts artifacts: "TestResults/**", fingerprint: true, onlyIfSuccessful: false
         }
       }
     }
   }
-  
+
   post {
     always {
-      powershell '''
-        Write-Host "`n=== Cleanup: Stopping Appium and Emulator ==="
-        $ErrorActionPreference = "SilentlyContinue"
-        
-        # Stop Appium (all node processes)
-        Get-Process node | 
-          Where-Object { $_.Path -like "*\\node.exe" } | 
-          Stop-Process -Force
-        
-        # Stop emulator
-        Get-Process -Name "qemu-system-x86_64" | Stop-Process -Force
-        taskkill /IM "qemu-system-x86_64.exe" /F *>$null
-        
-        # Kill adb server
-        $adbExe = Join-Path $env:ANDROID_HOME "platform-tools\\adb.exe"
-        if (Test-Path $adbExe) {
-          & $adbExe kill-server 2>$null | Out-Null
+      script {
+        node('windows-android') {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            powershell 'ci/stop-mobile.ps1'
+            archiveArtifacts artifacts: 'TestResults/**', fingerprint: true, onlyIfSuccessful: false
+          }
         }
-        
-        Write-Host "Cleanup completed."
-      '''
+      }
     }
     success {
-      echo 'Tests passed successfully!'
+      echo 'Tests passed.'
     }
     unstable {
       echo 'Some tests failed or were flaky.'
