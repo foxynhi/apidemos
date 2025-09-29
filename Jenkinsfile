@@ -172,7 +172,7 @@ pipeline {
           script {
             // Change back to workspace root for artifacts
             dir("${env.WORKSPACE}") {
-              junit allowEmptyResults: true, testResults: '**/TestResults/TestResult.xml'
+              junit allowEmptyResults: true, testResults: 'TestResults/TestResult.xml'
               
               publishHTML(target: [
                 reportDir: 'TestResults',
