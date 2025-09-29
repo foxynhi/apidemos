@@ -62,38 +62,28 @@ pipeline {
           Write-Host "Cleaning up existing processes..."
           Get-Process -Name "qemu-system-x86_64" -ErrorAction SilentlyContinue | 
             Stop-Process -Force -ErrorAction SilentlyContinue
-          & $adbExe kill-server 2>$null | Out-Null
+          cmd /c """$adbExe"" kill-server" 2> NUL
+          & $adbExe start-server | Out-Null
           Start-Sleep -Seconds 2
           
           # Start emulator
           Write-Host "Starting emulator: $env:AVD_NAME"
           $emuArgs = @("-avd", $env:AVD_NAME, "-no-snapshot", "-no-boot-anim", "-no-audio", "-gpu", "off")
           Start-Process -FilePath $emulatorExe -ArgumentList $emuArgs -WindowStyle Hidden
-          
-          # Wait for device to be ready
           & $adbExe start-server | Out-Null
-          $bootTimeout = 240
-          $deadline = (Get-Date).AddSeconds($bootTimeout)
-          
-          Write-Host "Waiting for emulator to boot (timeout: ${bootTimeout}s)..."
-          & $adbExe wait-for-device
-          
+
+
+          $deadline = (Get-Date).AddSeconds(30)
           do {
-            $prop = & $adbExe shell getprop sys.boot_completed 2>$null
-            if ($prop -match "1") { 
+            $listening = Get-NetTCPConnection -LocalPort 5037 -ErrorAction SilentlyContinue
+            if ($listening) { 
               Write-Host "Boot completed!"
               break 
             }
-            Write-Host "Still booting... (sys.boot_completed: $prop)"
-            Start-Sleep -Seconds 3
+            Start-Sleep -Seconds 1
           } while ((Get-Date) -lt $deadline)
+          if (-not $listening) { throw "ADB server did not start (port 5037 not listening)." }
           
-          if ($prop -notmatch "1") {
-            throw "Emulator failed to boot within $bootTimeout seconds."
-          }
-          
-          # Unlock screen
-          & $adbExe shell input keyevent 82
           Write-Host "Emulator is ready."
           
           # ============================================
@@ -158,8 +148,10 @@ pipeline {
           if (!(Test-Path $testPath)) {
             throw "Test directory not found: $testPath"
           }
-          
+
           Set-Location -Path $testPath
+          New-Item -ItemType Directory -Path "TestResults" -Force | Out-Null
+
           Write-Host "Changed to: $(Get-Location)"
           Write-Host "`nTest directory contents:"
           Get-ChildItem | Format-Table Name, Length
