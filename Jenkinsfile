@@ -49,7 +49,8 @@ pipeline {
 
           Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
 
-          cd "Auto Test\APIDemos"
+          cd "Auto Test/APIDemos"
+
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
