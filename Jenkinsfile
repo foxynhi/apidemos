@@ -154,7 +154,7 @@ pipeline {
           Write-Host "Current directory: $(Get-Location)"
           
           # Navigate to test directory
-          $testPath = Join-Path (Get-Location) "Auto Test\\APIDemos"
+          $testPath = $(Get-Location)
           if (!(Test-Path $testPath)) {
             throw "Test directory not found: $testPath"
           }
