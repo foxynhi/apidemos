@@ -26,7 +26,7 @@ public static class DeviceMatrix
   public static IEnumerable<DeviceConfig> All => new[]
   {
     new DeviceConfig(
-      Name: "Pixel 9",
+      Name: "Pixel 6",
       DeviceName: "emulator-5554",
       PlatformName: "Android",
       SystemPort: 8888,
