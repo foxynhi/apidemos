@@ -114,14 +114,7 @@ pipeline {
       post {
         always {
           junit allowEmptyResults: true, testResults: '**/TestResults/TestResult.xml'
-          publishHTML(target: [
-            reportDir: 'TestResults',
-            reportFiles: 'index.html',
-            reportName: 'Test Report',
-            keepAll: true,
-            alwaysLinkToLastBuild: true,
-            allowMissing: true
-          ])
+          
           archiveArtifacts artifacts: 'TestResults/**', allowEmptyArchive: true
         }
       }
