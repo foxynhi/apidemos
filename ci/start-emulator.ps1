@@ -7,7 +7,6 @@ $ErrorActionPreference = "Stop"
 
 # Resolve SDK tools
 $androidHome = $env:ANDROID_HOME
-if ([string]::IsNullOrWhiteSpace($androidHome)) { $androidHome = $env:ANDROID_HOME }
 if ([string]::IsNullOrWhiteSpace($androidHome)) { throw "ANDROID_HOME is not set." }
 
 $emulatorExe = Join-Path $androidHome "emulator\emulator.exe"
@@ -30,6 +29,14 @@ Start-Process -FilePath $emulatorExe -ArgumentList $emuArgs -WindowStyle Hidden
 & $adbExe start-server | Out-Null
 $deadline = (Get-Date).AddSeconds($BootTimeoutSec)
 Write-Host "Waiting for emulator to boot..."
+
+do {
+  Start-Sleep -Seconds 2
+  $devices = & $adbExe devices
+  $hasEmu  = $devices -match "^emulator-\d+\s+device"
+} while (-not $hasEmu -and (Get-Date) -lt $deadline)
+
+if (-not $hasEmu) { throw "Emulator ADB device not detected within $BootTimeoutSec seconds." }
 
 & $adbExe wait-for-device
 

@@ -14,10 +14,18 @@ if ($inUse) {
   Start-Sleep -Seconds 2
 }
 
-$job = Start-Job -ScriptBlock {
-  param($p)
-  npx appium --base-path / --port $p
-} -ArgumentList $Port
+$logDir = Join-Path $PSScriptRoot "logs"
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$appiumOut = Join-Path $logDir "appium.out.log"
+$appiumErr = Join-Path $logDir "appium.err.log"
+
+$cmd = "cmd.exe"
+$args = @("/c","npx","appium","--base-path","/","--port",$Port)
+
+Start-Process -FilePath $cmd -ArgumentList $args `
+  -WindowStyle Hidden `
+  -RedirectStandardOutput $appiumOut `
+  -RedirectStandardError  $appiumErr
 
 # Wait for port
 $deadline = (Get-Date).AddSeconds(20)

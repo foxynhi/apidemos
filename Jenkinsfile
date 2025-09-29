@@ -38,7 +38,6 @@ pipeline {
         powershell '''
           ./ci/start-emulator.ps1 -AvdName "${env:AVD_NAME}" -BootTimeoutSec 240
           ./ci/start-appium.ps1 -Port $env:APPIUM_PORT
-          echo "Running tests..."
         '''
       }
     }
