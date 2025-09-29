@@ -1,5 +1,5 @@
 pipeline {
-  agent any
+  agent { label 'windows-android' }
 
   options {
     timestamps()
@@ -75,8 +75,13 @@ pipeline {
 
   post {
     always {
-      powershell 'ci/stop-mobile.ps1'
-      archiveArtifacts artifacts: 'TestResults/**', fingerprint: true, onlyIfSuccessful: false
+    script {
+      node('windows-android') {
+        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+          powershell 'ci/stop-mobile.ps1'
+          archiveArtifacts artifacts: 'TestResults/**', fingerprint: true, onlyIfSuccessful: false
+        }
+      }
     }
     success {
       echo 'Tests passed.'
