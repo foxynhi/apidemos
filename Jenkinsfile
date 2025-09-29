@@ -75,11 +75,12 @@ pipeline {
 
   post {
     always {
-    script {
-      node('windows-android') {
-        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-          powershell 'ci/stop-mobile.ps1'
-          archiveArtifacts artifacts: 'TestResults/**', fingerprint: true, onlyIfSuccessful: false
+      script {
+        node('windows-android') {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            powershell 'ci/stop-mobile.ps1'
+            archiveArtifacts artifacts: 'TestResults/**', fingerprint: true, onlyIfSuccessful: false
+          }
         }
       }
     }
