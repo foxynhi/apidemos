@@ -1,0 +1,99 @@
+name: Android UI Tests (Appium + .NET)
+
+on:
+  push:
+    branches: [ "GitHubActionsBr" ]
+  pull_request:
+    branches: [ "GitHubActionsBr" ]
+    
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-tests-${{ github.ref }}
+  cancel-in-progress: true
+  
+jobs:
+
+  android-ui-tests:
+    runs-on: macos-14  
+    
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: 1
+      REPORT_DIR: ./TestResults
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Install the .NET Core workload
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          6.0.x
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Setup Java (JDK 17)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install Appium & Android driver
+      run: |
+        npm i -g appium
+        appium -v
+        appium driver install uiautomator2
+
+    - name: Start Appium (background)
+      run: |
+        nohup appium --base-path /wd/hub > appium.log 2>&1 &
+        # small wait to ensure server is listening
+        sleep 5
+        lsof -iTCP:4723 -sTCP:LISTEN || (echo "Appium didn't start" && exit 1)
+
+    # Boots a Google APIs system image emulator and waits until it's ready
+    - name: Launch Android Emulator
+      uses: ReactiveCircus/android-emulator-runner@v2
+      with:
+        api-level: 36
+        target: google_apis
+        arch: x86_64
+        profile: pixel_9
+        emulator-options: -no-snapshot -no-boot-anim -no-window
+        disable-animations: true
+        script: |
+          adb devices
+          # Optional: verify device is idle before running tests
+          adb shell cmd deviceidle force-idle || true
+
+    - name: Build tests
+      run: dotnet build --configuration Release
+
+    - name: Run tests (NUnit)
+      run: |
+        mkdir -p "$REPORT_DIR"
+        dotnet test --configuration Release \
+          --logger "trx;LogFileName=TestResults.trx" \
+          --results-directory "$REPORT_DIR"
+
+    - name: Upload test reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-ui-test-reports
+        path: |
+          ${{ env.REPORT_DIR }}/
+          appium.log
