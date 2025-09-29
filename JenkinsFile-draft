@@ -1,5 +1,12 @@
 pipeline {
   agent { label 'windows-android' }
+
+  options {
+    timestamps()
+    ansiColor('xterm')
+    durabilityHint('PERFORMANCE_OPTIMIZED')
+  }
+
   environment {
     ANDROID_HOME     = "${env.ANDROID_HOME}"
     JAVA_HOME        = "${env.JAVA_HOME}"
@@ -7,54 +14,89 @@ pipeline {
     AVD_NAME         = "Pixel_9"
     APPIUM_PORT      = "4723"
   }
-  options { timestamps() }
+
   stages {
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+        echo "Checkout successfully."
+      }
     }
-    stage('Verify toolchain') {
+
+    stage('Restore & Build') {
       steps {
         powershell '''
-          adb version
           dotnet --info
+          dotnet restore
+          dotnet build --configuration Release --no-restore
         '''
       }
     }
-    stage('Wait for emulator to be online') {
+
+    stage('Start Emulator & Appium') {
       steps {
         powershell '''
-          adb start-server
-          $max = [DateTime]::UtcNow.AddMinutes(5)
-          do {
-            $list = adb devices
-            Write-Host $list
-            Start-Sleep -Seconds 5
-            $boot = adb -s ${env:DEVICE_ID} shell getprop sys.boot_completed 2>$null
-          } while ((-not $list -match ${env:DEVICE_ID}) -or ($boot.Trim() -ne '1') -and ([DateTime]::UtcNow -lt $max))
-          if ($boot.Trim() -ne '1') { throw "Emulator not booted in time." }
-          adb -s ${env:DEVICE_ID} shell settings put global window_animation_scale 0
-          adb -s ${env:DEVICE_ID} shell settings put global transition_animation_scale 0
-          adb -s ${env:DEVICE_ID} shell settings put global animator_duration_scale 0
+          ./ci/start-emulator.ps1 -AvdName "${env:AVD_NAME}" -BootTimeoutSec 240
+          ./ci/start-appium.ps1 -Port $env:APPIUM_PORT
         '''
       }
     }
-    stage('Run tests') {
+
+    stage('Run Tests') {
       steps {
-        // adjust paths to your solution / project
         powershell '''
-          $env:DEVICE_ID='${env:DEVICE_ID}'
-          $env:APPIUM_SERVER='${env:APPIUM_SERVER}'
-          dotnet test ./YourSolution.sln -c Release `
-            --logger "trx;LogFileName=TestResults.trx"
+          echo "Running tests..."
+          $env:APPIUM_SERVER_URL = "http://127.0.0.1:${env:APPIUM_PORT}"
+          Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
+      
+          # Use Set-Location with proper path
+          Set-Location -Path "Auto Test/APIDemos"
+          Get-Location  # Verify we're in the right place
+          Get-ChildItem # List files to confirm
+      
+          dotnet test --configuration Release `
+            --filter "LongPressMenuTest" `
+            --no-build `
+            --logger "nunit;LogFilePath=TestResults/TestResult.xml" `
+            -- NUnit.NumberOfTestWorkers=1
         '''
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'TestResults/TestResult.xml'
+          publishHTML(target: [
+            reportDir: 'TestResults',
+            reportFiles: '**/index.html',
+            reportName: 'Extent Report',
+            keepAll: true,
+            alwaysLinkToLastBuild: true,
+            allowMissing: true
+          ])
+          archiveArtifacts artifacts: "TestResults/**", fingerprint: true, onlyIfSuccessful: false
+        }
       }
     }
   }
+
   post {
     always {
-      // publish NUnit/JUnit-style results if your tests emit them
-      junit allowEmptyResults: true, testResults: '**/TestResult*.xml,**/TestResults.trx'
-      archiveArtifacts artifacts: '**/ExtentReports/**/*.*', allowEmptyArchive: true
+      script {
+        node('windows-android') {
+          catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+            powershell 'ci/stop-mobile.ps1'
+            archiveArtifacts artifacts: 'TestResults/**', fingerprint: true, onlyIfSuccessful: false
+          }
+        }
+      }
+    }
+    success {
+      echo 'Tests passed.'
+    }
+    unstable {
+      echo 'Some tests failed or were flaky.'
+    }
+    failure {
+      echo 'Build failed.'
     }
   }
 }
