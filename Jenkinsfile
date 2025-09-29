@@ -183,7 +183,7 @@ pipeline {
               junit allowEmptyResults: true, testResults: '**/TestResults/TestResult.xml'
               
               publishHTML(target: [
-                reportDir: 'Auto Test/APIDemos/TestResults',
+                reportDir: 'TestResults',
                 reportFiles: '**/index.html',
                 reportName: 'Extent Report',
                 keepAll: true,
@@ -206,14 +206,16 @@ pipeline {
     always {
       powershell '''
         Write-Host "`n=== Cleanup: Stopping Appium and Emulator ==="
+        $ErrorActionPreference = "SilentlyContinue"
         
         # Stop Appium (all node processes)
-        Get-Process node -ErrorAction SilentlyContinue | 
+        Get-Process node | 
           Where-Object { $_.Path -like "*\\node.exe" } | 
-          Stop-Process -Force -ErrorAction SilentlyContinue
+          Stop-Process -Force
         
         # Stop emulator
-        taskkill /IM "qemu-system-x86_64.exe" /F 2>$null | Out-Null
+        Get-Process -Name "qemu-system-x86_64" | Stop-Process -Force
+        taskkill /IM "qemu-system-x86_64.exe" /F *>$null
         
         # Kill adb server
         $adbExe = Join-Path $env:ANDROID_HOME "platform-tools\\adb.exe"
