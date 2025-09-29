@@ -97,7 +97,9 @@ public class BaseTest
     _test.Value.Info("Starting driver");
     try
     {
-      driver = new AndroidDriver(new Uri("http://127.0.0.1:4723/"), options, TimeSpan.FromMinutes(3));
+      var url = Environment.GetEnvironmentVariable("APPIUM_SERVER_URL")
+          ?? "http://127.0.0.1:4723";
+      driver = new AndroidDriver(new Uri(url), options, TimeSpan.FromMinutes(3));
     }
     catch (UnknownErrorException ex) 
     { 
