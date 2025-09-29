@@ -8,7 +8,7 @@ pipeline {
   }
 
   environment {
-    ANDROID_HOME = "${env.ANDROID_HOME}"
+    ANDROID_HOME     = "${env.ANDROID_HOME}"
     JAVA_HOME        = "${env.JAVA_HOME}"
     PATH             = "${env.PATH};C:\\Program Files\\dotnet;${env.ANDROID_HOME}\\platform-tools"
     AVD_NAME         = "Pixel_9"
@@ -49,6 +49,7 @@ pipeline {
 
           Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
 
+          cd "Auto Test\APIDemos"
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `

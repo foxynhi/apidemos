@@ -1,0 +1,60 @@
+pipeline {
+  agent { label 'windows-android' }
+  environment {
+    ANDROID_HOME     = "${env.ANDROID_HOME}"
+    JAVA_HOME        = "${env.JAVA_HOME}"
+    PATH             = "${env.PATH};C:\\Program Files\\dotnet;${env.ANDROID_HOME}\\platform-tools"
+    AVD_NAME         = "Pixel_9"
+    APPIUM_PORT      = "4723"
+  }
+  options { timestamps() }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Verify toolchain') {
+      steps {
+        powershell '''
+          adb version
+          dotnet --info
+        '''
+      }
+    }
+    stage('Wait for emulator to be online') {
+      steps {
+        powershell '''
+          adb start-server
+          $max = [DateTime]::UtcNow.AddMinutes(5)
+          do {
+            $list = adb devices
+            Write-Host $list
+            Start-Sleep -Seconds 5
+            $boot = adb -s ${env:DEVICE_ID} shell getprop sys.boot_completed 2>$null
+          } while ((-not $list -match ${env:DEVICE_ID}) -or ($boot.Trim() -ne '1') -and ([DateTime]::UtcNow -lt $max))
+          if ($boot.Trim() -ne '1') { throw "Emulator not booted in time." }
+          adb -s ${env:DEVICE_ID} shell settings put global window_animation_scale 0
+          adb -s ${env:DEVICE_ID} shell settings put global transition_animation_scale 0
+          adb -s ${env:DEVICE_ID} shell settings put global animator_duration_scale 0
+        '''
+      }
+    }
+    stage('Run tests') {
+      steps {
+        // adjust paths to your solution / project
+        powershell '''
+          $env:DEVICE_ID='${env:DEVICE_ID}'
+          $env:APPIUM_SERVER='${env:APPIUM_SERVER}'
+          dotnet test ./YourSolution.sln -c Release `
+            --logger "trx;LogFileName=TestResults.trx"
+        '''
+      }
+    }
+  }
+  post {
+    always {
+      // publish NUnit/JUnit-style results if your tests emit them
+      junit allowEmptyResults: true, testResults: '**/TestResult*.xml,**/TestResults.trx'
+      archiveArtifacts artifacts: '**/ExtentReports/**/*.*', allowEmptyArchive: true
+    }
+  }
+}
