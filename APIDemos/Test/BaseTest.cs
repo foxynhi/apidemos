@@ -81,7 +81,6 @@ public class BaseTest
     options.DeviceName = _cfg.Name;
     options.AutomationName = "UiAutomator2";
     options.PlatformName = _cfg.PlatformName;
-    options.AddAdditionalAppiumOption("udid", _cfg.DeviceName);
     options.AddAdditionalAppiumOption("systemPort", _cfg.SystemPort);
 
     if (!string.IsNullOrWhiteSpace(_cfg.App))
