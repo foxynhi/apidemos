@@ -3,8 +3,6 @@ pipeline {
   
   options {
     timestamps()
-    ansiColor('xterm')
-    durabilityHint('PERFORMANCE_OPTIMIZED')
   }
   
   environment {
@@ -32,76 +30,29 @@ pipeline {
         '''
       }
     }
+
+    stage('Start Appium Server') {
+      steps {
+        script {
+          sh 'appium --log-level error > appium.log 2>&1 &'
+          sh 'sleep 5' // Wait for Appium to start
+        }
+      }
+    }
+
+    stage('Start Emulator') {
+      steps {
+        script {
+          sh 'emulator -avd $AVD_NAME -no-snapshot -no-audio -no-window &'
+          sh 'adb wait-for-device shell "while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done"'
+        }
+      }
+    }
+
     
-    stage('Start Emulator & Appium & Run Tests') {
+    stage('Run Tests') {
       steps {
         powershell '''
-          $ErrorActionPreference = "Stop"
-          
-          # ============================================
-          # START EMULATOR
-          # ============================================
-          # Start Emulator
-          Write-Host "`n=== Starting Emulator: $env:AVD_NAME ==="
-          $emuArgs = @("-avd", $env:AVD_NAME, "-no-snapshot", "-no-boot-anim", "-no-audio", "-gpu", "off")
-          Start-Process -FilePath $emulatorExe -ArgumentList $emuArgs -WindowStyle Hidden
-          
-          & $adbExe start-server | Out-Null
-          & $adbExe wait-for-device | Out-Null
-          
-          $bootTimeout = (Get-Date).AddSeconds(240)
-          Write-Host "Waiting for boot..."
-          do {
-            $bootComplete = & $adbExe shell getprop sys.boot_completed 2>$null
-            if ($bootComplete -eq "1") { break }
-            Start-Sleep -Seconds 3
-          } while ((Get-Date) -lt $bootTimeout)
-          
-          if ($bootComplete -ne "1") { throw "Emulator failed to boot" }
-          & $adbExe shell input keyevent 82  # Unlock
-          Write-Host "Emulator ready!"
-          
-          # Start Appium
-          Write-Host "`n=== Starting Appium on port $env:APPIUM_PORT ==="
-          $port = [int]$env:APPIUM_PORT
-          
-          # Kill process on port if exists
-          $inUse = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-          if ($inUse) {
-            $inUse | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
-            Start-Sleep -Seconds 2
-          }
-          
-          # Start Appium job
-          $appiumJob = Start-Job -ScriptBlock {
-            param($p)
-            npx appium --base-path / --port $p
-          } -ArgumentList $port
-          
-          # Wait for Appium
-          $appiumTimeout = (Get-Date).AddSeconds(30)
-          do {
-            $listening = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-            if ($listening) { break }
-            Start-Sleep -Seconds 2
-          } while ((Get-Date) -lt $appiumTimeout)
-          
-          if (!$listening) {
-            Receive-Job -Job $appiumJob
-            Stop-Job -Job $appiumJob
-            throw "Appium failed to start"
-          }
-          Write-Host "Appium ready! (Job $($appiumJob.Id))"
-          
-          # Run Tests
-          Write-Host "`n=== Running Tests ==="
-          $env:APPIUM_SERVER_URL = "http://127.0.0.1:${port}"
-          Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
-          Write-Host "Workspace: $(Get-Location)"
-          
-          # Create TestResults directory in workspace root
-          New-Item -ItemType Directory -Path "TestResults" -Force | Out-Null
-          
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
