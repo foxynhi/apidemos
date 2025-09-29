@@ -38,6 +38,7 @@ pipeline {
         powershell '''
           ./ci/start-emulator.ps1 -AvdName "${env:AVD_NAME}" -BootTimeoutSec 240
           ./ci/start-appium.ps1 -Port $env:APPIUM_PORT
+          echo "Running tests..."
         '''
       }
     }
@@ -47,12 +48,13 @@ pipeline {
         powershell '''
           echo "Running tests..."
           $env:APPIUM_SERVER_URL = "http://127.0.0.1:${env:APPIUM_PORT}"
-
           Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
-
-          cd "Auto Test/APIDemos"
-          ls -la
-
+      
+          # Use Set-Location with proper path
+          Set-Location -Path "Auto Test/APIDemos"
+          Get-Location  # Verify we're in the right place
+          Get-ChildItem # List files to confirm
+      
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
