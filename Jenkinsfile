@@ -41,123 +41,67 @@ pipeline {
           # ============================================
           # START EMULATOR
           # ============================================
-          Write-Host "=== Starting Android Emulator ==="
-          
-          $androidHome = $env:ANDROID_HOME
-          if ([string]::IsNullOrWhiteSpace($androidHome)) { 
-            throw "ANDROID_HOME is not set." 
-          }
-          
-          $emulatorExe = Join-Path $androidHome "emulator\\emulator.exe"
-          $adbExe      = Join-Path $androidHome "platform-tools\\adb.exe"
-          
-          if (!(Test-Path $emulatorExe)) { 
-            throw "emulator.exe not found at $emulatorExe" 
-          }
-          if (!(Test-Path $adbExe)) { 
-            throw "adb.exe not found at $adbExe" 
-          }
-          
-          # Kill any leftovers
-          Write-Host "Cleaning up existing processes..."
-          Get-Process -Name "qemu-system-x86_64" -ErrorAction SilentlyContinue | 
-            Stop-Process -Force -ErrorAction SilentlyContinue
-          cmd /c """$adbExe"" kill-server" 2> NUL
-          & $adbExe start-server | Out-Null
-          Start-Sleep -Seconds 2
-          
-          # Start emulator
-          Write-Host "Starting emulator: $env:AVD_NAME"
+          # Start Emulator
+          Write-Host "`n=== Starting Emulator: $env:AVD_NAME ==="
           $emuArgs = @("-avd", $env:AVD_NAME, "-no-snapshot", "-no-boot-anim", "-no-audio", "-gpu", "off")
           Start-Process -FilePath $emulatorExe -ArgumentList $emuArgs -WindowStyle Hidden
+          
           & $adbExe start-server | Out-Null
-
-
-          $deadline = (Get-Date).AddSeconds(30)
+          & $adbExe wait-for-device | Out-Null
+          
+          $bootTimeout = (Get-Date).AddSeconds(240)
+          Write-Host "Waiting for boot..."
           do {
-            $listening = Get-NetTCPConnection -LocalPort 5037 -ErrorAction SilentlyContinue
-            if ($listening) { 
-              Write-Host "Boot completed!"
-              break 
-            }
-            Start-Sleep -Seconds 1
-          } while ((Get-Date) -lt $deadline)
-          if (-not $listening) { throw "ADB server did not start (port 5037 not listening)." }
+            $bootComplete = & $adbExe shell getprop sys.boot_completed 2>$null
+            if ($bootComplete -eq "1") { break }
+            Start-Sleep -Seconds 3
+          } while ((Get-Date) -lt $bootTimeout)
           
-          Write-Host "Emulator is ready."
+          if ($bootComplete -ne "1") { throw "Emulator failed to boot" }
+          & $adbExe shell input keyevent 82  # Unlock
+          Write-Host "Emulator ready!"
           
-          # ============================================
-          # START APPIUM
-          # ============================================
-          Write-Host "`n=== Starting Appium Server ==="
+          # Start Appium
+          Write-Host "`n=== Starting Appium on port $env:APPIUM_PORT ==="
+          $port = [int]$env:APPIUM_PORT
           
-          $appiumPort = [int]$env:APPIUM_PORT
-          
-          # Kill any process using the port
-          $inUse = Get-NetTCPConnection -LocalPort $appiumPort -ErrorAction SilentlyContinue
+          # Kill process on port if exists
+          $inUse = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
           if ($inUse) {
-            Write-Host "Port $appiumPort in use. Killing process..."
-            $inUse | ForEach-Object { 
-              taskkill /PID $_.OwningProcess /F 2>$null | Out-Null 
-            }
+            $inUse | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
             Start-Sleep -Seconds 2
           }
           
-          # Start Appium as background job
-          Write-Host "Starting Appium on port $appiumPort..."
+          # Start Appium job
           $appiumJob = Start-Job -ScriptBlock {
-            param($port)
-            npx appium --base-path / --port $port 2>&1
-          } -ArgumentList $appiumPort
+            param($p)
+            npx appium --base-path / --port $p
+          } -ArgumentList $port
           
-          # Wait for Appium to be ready
-          $appiumDeadline = (Get-Date).AddSeconds(30)
-          $appiumReady = $false
-          
+          # Wait for Appium
+          $appiumTimeout = (Get-Date).AddSeconds(30)
           do {
+            $listening = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+            if ($listening) { break }
             Start-Sleep -Seconds 2
-            $listening = Get-NetTCPConnection -LocalPort $appiumPort -ErrorAction SilentlyContinue
-            if ($listening) {
-              $appiumReady = $true
-              break
-            }
-            Write-Host "Waiting for Appium to start..."
-          } while ((Get-Date) -lt $appiumDeadline)
+          } while ((Get-Date) -lt $appiumTimeout)
           
-          if (-not $appiumReady) {
-            Write-Host "Appium job output:"
+          if (!$listening) {
             Receive-Job -Job $appiumJob
-            Stop-Job -Job $appiumJob -ErrorAction SilentlyContinue
-            Remove-Job -Job $appiumJob -ErrorAction SilentlyContinue
-            throw "Appium did not start on port $appiumPort within 30 seconds."
+            Stop-Job -Job $appiumJob
+            throw "Appium failed to start"
           }
+          Write-Host "Appium ready! (Job $($appiumJob.Id))"
           
-          Write-Host "Appium is up and running (Job ID: $($appiumJob.Id))"
-          
-          # ============================================
-          # RUN TESTS
-          # ============================================
+          # Run Tests
           Write-Host "`n=== Running Tests ==="
-          
-          $env:APPIUM_SERVER_URL = "http://127.0.0.1:${appiumPort}"
+          $env:APPIUM_SERVER_URL = "http://127.0.0.1:${port}"
           Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
-          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Workspace: $(Get-Location)"
           
-          # Navigate to test directory
-          $testPath = $(Get-Location)
-          if (!(Test-Path $testPath)) {
-            throw "Test directory not found: $testPath"
-          }
-
-          Set-Location -Path $testPath
+          # Create TestResults directory in workspace root
           New-Item -ItemType Directory -Path "TestResults" -Force | Out-Null
-
-          Write-Host "Changed to: $(Get-Location)"
-          Write-Host "`nTest directory contents:"
-          Get-ChildItem | Format-Table Name, Length
           
-          # Run tests
-          Write-Host "`nExecuting dotnet test..."
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
@@ -169,26 +113,16 @@ pipeline {
       }
       post {
         always {
-          script {
-            // Change back to workspace root for artifacts
-            dir("${env.WORKSPACE}") {
-              junit allowEmptyResults: true, testResults: 'TestResults/TestResult.xml'
-              
-              publishHTML(target: [
-                reportDir: 'TestResults',
-                reportFiles: '**/index.html',
-                reportName: 'Extent Report',
-                keepAll: true,
-                alwaysLinkToLastBuild: true,
-                allowMissing: true
-              ])
-              
-              archiveArtifacts artifacts: '**/TestResults/**', 
-                               fingerprint: true, 
-                               onlyIfSuccessful: false,
-                               allowEmptyArchive: true
-            }
-          }
+          junit allowEmptyResults: true, testResults: '**/TestResults/TestResult.xml'
+          publishHTML(target: [
+            reportDir: 'TestResults',
+            reportFiles: 'index.html',
+            reportName: 'Test Report',
+            keepAll: true,
+            alwaysLinkToLastBuild: true,
+            allowMissing: true
+          ])
+          archiveArtifacts artifacts: 'TestResults/**', allowEmptyArchive: true
         }
       }
     }
