@@ -46,6 +46,15 @@ pipeline {
         powershell '''
           $env:APPIUM_SERVER_URL = "http://127.0.0.1:${env:APPIUM_PORT}"
 
+          Write-Host "APPIUM_SERVER_URL = $env:APPIUM_SERVER_URL"
+          try {
+            $resp = Invoke-WebRequest -UseBasicParsing "$env:APPIUM_SERVER_URL/status" -TimeoutSec 5
+            Write-Host "Status check: $($resp.StatusCode)"
+          } catch {
+            Write-Host "Status check failed: $($_.Exception.Message)"
+            throw
+          }
+
           dotnet test --configuration Release `
             --filter "LongPressMenuTest" `
             --no-build `
