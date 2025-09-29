@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'windows-android' }
+  agent any
 
   options {
     timestamps()
