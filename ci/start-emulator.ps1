@@ -23,7 +23,7 @@ Get-Process -Name "qemu-system-x86_64" -ErrorAction SilentlyContinue |
 Start-Sleep -Seconds 1
 
 # Start emulator headless & faster boot flags
-$emuArgs = @("-avd", $AvdName, "-no-snapshot", "-no-boot-anim", "-no-audio", "-gpu", "off", "-no-window")
+$emuArgs = @("-avd", $AvdName, "-no-snapshot", "-no-boot-anim", "-no-audio", "-gpu", "off")
 Start-Process -FilePath $emulatorExe -ArgumentList $emuArgs -WindowStyle Hidden
 
 # Wait for device to be ready

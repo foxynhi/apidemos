@@ -99,10 +99,12 @@ public class BaseTest
     {
       var url = Environment.GetEnvironmentVariable("APPIUM_SERVER_URL")
           ?? "http://127.0.0.1:4723";
+      Console.WriteLine(">> Creating driver");
       driver = new AndroidDriver(new Uri(url), options, TimeSpan.FromMinutes(3));
+      Console.WriteLine($">> Driver created: {driver.SessionId}");
     }
-    catch (UnknownErrorException ex) 
-    { 
+    catch (UnknownErrorException ex)
+    {
       Console.WriteLine(ex.Message);
     }
     _test.Value.Info($"Session: {driver.SessionId}");
@@ -117,7 +119,7 @@ public class BaseTest
       if (context.Result.Outcome.Status == TestStatus.Failed)
       {
         string screenshotPath = Path.Combine(ExtentService.ReportPath, $"{context.Test.Name}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-        
+
         ((ITakesScreenshot)driver).GetScreenshot().SaveAsFile(screenshotPath);
 
         _test.Value?.AddScreenCaptureFromPath(Path.GetFileName(screenshotPath));
@@ -143,6 +145,7 @@ public class BaseTest
   [OneTimeTearDown]
   public void OneTimeTearDown()
   {
+    Console.WriteLine($">> Quitting driver: {driver?.SessionId}");
     _extent.Flush();
     TestContext.WriteLine($"Report: {ExtentService.ReportPath}");
   }
